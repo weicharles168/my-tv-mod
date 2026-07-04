@@ -17,18 +17,25 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: 8.9
+      - name: Unzip full source
+        run: |
+          rm -rf source
+          mkdir source
+          unzip -q my-tv-0-1.3.9.7-kitkat-single-source-modified-source.zip -d source
+          echo "查看解压后的目录："
+          find source -maxdepth 3 -type f | head -80
+          echo "查找 gradlew："
+          find source -name gradlew
+          echo "查找 app 模块："
+          find source -maxdepth 3 -type d -name app
 
       - name: Build Release APK
-        run: gradle assembleRelease --stacktrace
-
-      - name: Show APK files
         run: |
-          echo "APK files:"
-          find app/build/outputs/apk -name "*.apk"
+          PROJECT_DIR=$(dirname $(find source -name gradlew | head -n 1))
+          echo "项目目录：$PROJECT_DIR"
+          cd "$PROJECT_DIR"
+          chmod +x ./gradlew
+          ./gradlew :app:assembleRelease --stacktrace
 
       - name: Create keystore
         run: |
@@ -45,7 +52,7 @@ jobs:
 
       - name: Sign APK
         run: |
-          APK=$(find app/build/outputs/apk/release -name "*unsigned*.apk" | head -n 1)
+          APK=$(find source -path "*/app/build/outputs/apk/release/*unsigned*.apk" | head -n 1)
           echo "Unsigned APK: $APK"
           $ANDROID_HOME/build-tools/35.0.0/apksigner sign \
             --ks debug.keystore \
