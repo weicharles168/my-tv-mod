@@ -22,16 +22,44 @@ jobs:
         with:
           gradle-version: 8.9
 
-      - name: Show project files
+      - name: Build Release APK
+        run: gradle assembleRelease --stacktrace
+
+      - name: Show APK files
         run: |
-          pwd
-          ls -la
+          echo "APK files:"
+          find app/build/outputs/apk -name "*.apk"
 
-      - name: Build Debug APK
-        run: gradle assembleDebug --stacktrace
+      - name: Create keystore
+        run: |
+          keytool -genkeypair \
+            -v \
+            -keystore debug.keystore \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: Upload Debug APK
+      - name: Sign APK
+        run: |
+          APK=$(find app/build/outputs/apk/release -name "*unsigned*.apk" | head -n 1)
+          echo "Unsigned APK: $APK"
+          $ANDROID_HOME/build-tools/35.0.0/apksigner sign \
+            --ks debug.keystore \
+            --ks-pass pass:android \
+            --key-pass pass:android \
+            --out app-release-signed.apk \
+            "$APK"
+
+      - name: Verify APK
+        run: |
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify app-release-signed.apk
+
+      - name: Upload Signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: my-tv-0-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: my-tv-0-signed-apk
+          path: app-release-signed.apk
