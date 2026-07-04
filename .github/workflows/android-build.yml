@@ -17,24 +17,14 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Unzip source code
-        run: |
-          unzip -q my-tv-0-1.3.9.7-kitkat-single-source-modified-source.zip -d source
-          echo "解压完成，查看目录："
-          ls -la source
-          echo "查找 gradlew："
-          find source -name gradlew
+      - name: Grant execute permission
+        run: chmod +x ./gradlew
 
-      - name: Build APK
-        run: |
-          PROJECT_DIR=$(dirname $(find source -name gradlew | head -n 1))
-          echo "项目目录是：$PROJECT_DIR"
-          cd "$PROJECT_DIR"
-          chmod +x ./gradlew
-          ./gradlew assembleRelease
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: my-tv-0-apk
-          path: source/**/app/build/outputs/apk/release/*.apk
+          name: my-tv-0-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
